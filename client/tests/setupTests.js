@@ -42,21 +42,32 @@ beforeAll(async () => {
 
   const registration = await http.post('/auth/register', credentials);
   const registrationPayload = registration.data;
+  // Helpful debug output when running the client test harness
+  // eslint-disable-next-line no-console
+  console.log('[test-setup] registered user:', registrationPayload.user?.email);
 
   const { api } = await import('../src/api.js');
   api.defaults.baseURL = apiBaseUrl;
 
   window.localStorage.setItem('token', registrationPayload.token);
 
-  const seedPerkResponse = await api.post('/perks', {
-    title: `Integration Preview Benefit ${crypto.randomUUID()}`,
-    description: 'Baseline record created during setup for deterministic rendering checks.',
-    category: 'travel',
-    merchant: `Integration Merchant ${crypto.randomUUID()}`,
-    discountPercent: 15
-  });
-
-  const seededPerk = seedPerkResponse.data.perk;
+  let seededPerk;
+  try {
+    const seedPerkResponse = await api.post('/perks', {
+      title: `Integration Preview Benefit ${crypto.randomUUID()}`,
+      description: 'Baseline record created during setup for deterministic rendering checks.',
+      category: 'travel',
+      merchant: `Integration Merchant ${crypto.randomUUID()}`,
+      discountPercent: 15
+    });
+    seededPerk = seedPerkResponse.data.perk;
+    // eslint-disable-next-line no-console
+    console.log('[test-setup] seeded perk id:', seededPerk?._id);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[test-setup] failed to seed perk:', err?.response?.data || err.message || err);
+    throw err;
+  }
   if (seededPerk?._id) {
     createdPerkIds.add(seededPerk._id);
   }
